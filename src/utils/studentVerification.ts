@@ -18,7 +18,7 @@ export interface VerificationData {
   feedback?: string;
 }
 
-const BACKEND_URL = 'http://localhost:4000';
+const BACKEND_URL = `${process.env.REACT_APP_API_URL}`;
 
 /**
  * Fetch all companies from the student data
