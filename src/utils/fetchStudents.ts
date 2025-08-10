@@ -46,11 +46,11 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Google Apps Script Web App URL - Replace with your deployed web app URL
 const APPS_SCRIPT_WEB_APP_URL =
-  "https://script.google.com/macros/s/AKfycbyf2sotopkgFeDzr1Ag33lnukBr3GoYVEMSgZWbCKrjfUGJ-OCH3ZfWAd_EOO_G2Eg3fQ/exec";
+  "https://script.google.com/macros/s/AKfycbxMKdm72BFmlEdS77dAJMF-hdqq6QUbhaRjgn1SLrX4HNY3u6YxukJIwFeOzKeYsmuY/exec";
 
 // Fallback CSV URL for reading student data
 const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/1iLIB2xiob8h3wfwl2V944UNdAiRyjoIdMkmlWaQJBN8/gviz/tq?tqx=out:csv&sheet=Placement%20Data";
+  "https://docs.google.com/spreadsheets/d/1qaw22tBerPvG6A_WGpuH41vP9RfHsFodYQ2sz8F35Lk/gviz/tq?tqx=out:csv&sheet=Student%20Submission";
 
 /**
  * Make a request to the Google Apps Script web app
@@ -179,28 +179,34 @@ export async function fetchPlacementDataFromCSV(): Promise<Student[]> {
   }
 }
 
-/**
- * Fetch student data from the CSV file (for verification table)
- * Returns an array of Student objects
- */
 export async function fetchStudentsFromCSV(): Promise<Student[]> {
   try {
     const response = await fetch(
-      "https://docs.google.com/spreadsheets/d/1jhiKj2-cslFS6cSWcTOCOUJ23oqdJseSw6mX6SWvJt4/gviz/tq?tqx=out:csv&sheet=Placement%20Data"
+      "https://docs.google.com/spreadsheets/d/1qaw22tBerPvG6A_WGpuH41vP9RfHsFodYQ2sz8F35Lk/gviz/tq?tqx=out:csv&sheet=Student%20Submissions"
     );
+
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-    const text = await response.text();
+    const rawText = await response.text();
 
-    const parsed = Papa.parse(text, {
+    // 💡 Sanitize malformed quotes manually (optional)
+    const sanitizedText = rawText
+      .split("\n")
+      .filter((line) => line.split(",").length >= 6) // remove broken lines
+      .join("\n")
+      .replace(/“|”/g, '"') // replace fancy quotes
+      .replace(/\uFFFD/g, ""); // remove replacement characters if any
+
+    // 🧠 Parse using PapaParse
+    const parsed = Papa.parse(sanitizedText, {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: false,
-      transformHeader: (header) => header.trim(),
+      transformHeader: (header) => header.trim().replace(/\s+/g, "_"), // normalize headers
     });
 
     if (parsed.errors.length > 0) {
-      console.warn("CSV parsing warnings:", parsed.errors);
+      console.warn("CSV parsing errors:", parsed.errors);
     }
 
     const students = (parsed.data as Record<string, string>[])
@@ -210,7 +216,7 @@ export async function fetchStudentsFromCSV(): Promise<Student[]> {
         company: (obj["Company"] || "").trim(),
         department: (obj["Course"] || "").trim(),
         phone: (obj["Phone"] || "").trim(),
-        email: (obj["Email_Id"] || "").trim(),
+        email: (obj["Email"] || obj["Email_Id"] || "").trim(),
       }))
       .filter((s) => s.regNo !== "" && s.name !== "");
 
@@ -220,6 +226,7 @@ export async function fetchStudentsFromCSV(): Promise<Student[]> {
     return [];
   }
 }
+
 
 export async function fetchCompanyNames(): Promise<string[]> {
   try {

@@ -1,200 +1,138 @@
 # Google Apps Script Setup Guide
 
-## Overview
+## Step 1: Create/Open Your Google Sheet
 
-This guide will help you set up Google Apps Script to enable read/write access to your Google Sheets without requiring API keys or OAuth2 complexity.
+1. Go to [Google Sheets](https://sheets.google.com)
+2. Create a new spreadsheet or open your existing one
+3. Copy the **Spreadsheet ID** from the URL:
+   ```
+   https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID_HERE/edit
+   ```
 
-## Step 1: Create Google Apps Script Project
+## Step 2: Set Up Google Apps Script
 
-1. **Go to Google Apps Script**
+1. Go to [Google Apps Script](https://script.google.com)
+2. Click "New Project"
+3. Delete the default code and paste the entire content from `test-apps-script.js`
+4. Replace `YOUR_SPREADSHEET_ID_HERE` with your actual Spreadsheet ID
+5. Save the project with a name like "Student Placement Form Handler"
 
-   - Visit [script.google.com](https://script.google.com)
-   - Sign in with your Google account
+## Step 3: Deploy as Web App
 
-2. **Create New Project**
+1. Click "Deploy" → "New deployment"
+2. Choose "Web app" as the type
+3. Set the following:
+   - **Execute as**: "Me" (your Google account)
+   - **Who has access**: "Anyone" (for testing) or "Anyone with Google account" (for production)
+4. Click "Deploy"
+5. Copy the **Web app URL** that's generated
 
-   - Click **"New Project"**
-   - Name it "Student Verification API"
+## Step 4: Update Backend Configuration
 
-3. **Replace Default Code**
+1. Open `p-lacement_backend/index.js`
+2. Replace the `GOOGLE_SCRIPT_URL` with your new web app URL:
+   ```javascript
+   const GOOGLE_SCRIPT_URL = "YOUR_NEW_WEB_APP_URL_HERE";
+   ```
 
-   - Delete the default `Code.gs` content
-   - Copy and paste the code from `google-apps-script-code.gs` file
+## Step 5: Test the Setup
 
-4. **Update Configuration**
-   - Replace `SPREADSHEET_ID` with your actual Google Sheet ID
-   - Replace `SHEET_NAME` with your sheet name (usually "Sheet1")
+1. Start your backend server:
+   ```bash
+   cd p-lacement_backend
+   npm start
+   ```
 
-## Step 2: Deploy as Web App
+2. Start your frontend:
+   ```bash
+   cd p-lacement_frontend
+   npm run dev
+   ```
 
-1. **Save the Project**
+3. Test the student form by filling it out and submitting
 
-   - Click **"Save"** (Ctrl+S or Cmd+S)
-   - Give it a name like "Student Verification API"
+## Google Sheet Structure
 
-2. **Deploy**
+The script will automatically create these sheets in your Google Spreadsheet:
 
-   - Click **"Deploy"** → **"New deployment"**
-   - Choose type: **"Web app"**
-   - Description: "Student Verification API v1"
-   - Execute as: **"Me"** (your Google account)
-   - Who has access: **"Anyone"** (for public access)
-   - Click **"Deploy"**
+### 1. Student Submissions Sheet
+This sheet will be created automatically when the first student submits data.
 
-3. **Authorize Access**
+| Column | Description |
+|--------|-------------|
+| Registration Number | Student's registration number |
+| Name | Student's full name |
+| Company | Company name (if placed) |
+| Course | Student's course/department |
+| Phone | Phone number |
+| Email | Email address |
+| Placement Date | Date of placement |
+| Package (CTC) | Salary package |
+| Feedback | Student's feedback |
+| Submission Date | When the form was submitted |
+| Is Verified | Whether recruiter has verified (false by default) |
 
-   - Click **"Authorize access"**
-   - Choose your Google account
-   - Click **"Advanced"** → **"Go to Student Verification API (unsafe)"**
-   - Click **"Allow"**
+### 2. Recruiter Verifications Sheet
+This sheet will be created when recruiters submit feedback.
 
-4. **Copy Web App URL**
-   - After deployment, copy the web app URL
-   - It looks like: `https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec`
+| Column | Description |
+|--------|-------------|
+| Student Name | Student's name |
+| Registration Number | Student's registration number |
+| Email | Student's email |
+| Department | Student's department |
+| Company | Company name |
+| Phone | Student's phone |
+| Recruiter Name | Recruiter's name |
+| Recruiter Email | Recruiter's email |
+| Verification Date | When verification was done |
+| Status | Joined/Not Joined/Left Company/Blacklisted |
+| Still With Us | Whether student is still with company |
+| Rating | Recruiter's rating (1-5) |
+| Comments | Recruiter's comments |
+| Is Verified | Whether verification is complete |
 
-## Step 3: Update Your TypeScript Code
-
-1. **Update the Web App URL**
-   - Open `src/utils/fetchStudents.ts`
-   - Replace `YOUR_SCRIPT_ID` in the `APPS_SCRIPT_WEB_APP_URL` with your actual script ID
-
-```typescript
-const APPS_SCRIPT_WEB_APP_URL =
-  "https://script.google.com/macros/s/YOUR_ACTUAL_SCRIPT_ID/exec";
-```
-
-2. **Test the Connection**
-   - Open your browser
-   - Visit: `https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec?action=getStudents`
-   - You should see JSON response with your data
-
-## Step 4: Update Your React Component
-
-Your existing `StudentVerificationTable` component should work as-is, but you can also use the new convenience function:
-
-```typescript
-import { submitRecruiterFeedback } from "@/utils/fetchStudents";
-
-// In your component
-const handleVerificationSubmit = async (
-  studentIndex: number,
-  verificationData: {
-    recruiterName: string;
-    recruiterEmail: string;
-    feedback: StudentFeedback;
-  }
-) => {
-  const student = students[studentIndex];
-
-  try {
-    await submitRecruiterFeedback(student, verificationData.feedback, {
-      name: verificationData.recruiterName,
-      email: verificationData.recruiterEmail,
-    });
-
-    // Update local state
-    onFeedbackChange(studentIndex, {
-      ...verificationData.feedback,
-      isVerified: true,
-      verificationDate: new Date().toISOString(),
-      recruiterName: verificationData.recruiterName,
-      recruiterEmail: verificationData.recruiterEmail,
-    });
-
-    alert("Verification submitted successfully!");
-  } catch (error) {
-    console.error("Failed to submit verification:", error);
-    alert("Failed to submit verification. Please try again.");
-  }
-};
-```
-
-## Step 5: Test the Integration
-
-1. **Test Reading Data**
-
-   - Your app should load student data from the Apps Script
-   - Check browser console for "Fetched X students from Apps Script"
-
-2. **Test Writing Data**
-   - Fill out a verification form
-   - Click "Verify"
-   - Check your Google Sheet - new data should appear
-   - Check browser console for success messages
+### 3. Placement Data Sheet (Existing)
+This should be your existing sheet with student placement data.
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues:
 
-1. **"Script not found" Error**
+1. **"Spreadsheet not found" error**
+   - Check that the Spreadsheet ID is correct
+   - Ensure the Google account running the script has access to the spreadsheet
 
-   - Make sure you copied the correct script ID
-   - Check that the deployment was successful
+2. **"Permission denied" error**
+   - Make sure the web app is deployed with "Anyone" access
+   - Check that the spreadsheet is shared with the Google account running the script
 
-2. **"Access denied" Error**
+3. **CORS errors**
+   - The script handles CORS automatically, but if you get errors, check the deployment settings
 
-   - Make sure you set "Who has access" to "Anyone"
-   - Check that you authorized the script
+4. **Data not appearing in sheets**
+   - Check the Apps Script logs in the Google Apps Script editor
+   - Verify the sheet names match exactly
 
-3. **"Sheet not found" Error**
+### Testing the Script:
 
-   - Verify your `SPREADSHEET_ID` is correct
-   - Make sure the sheet name matches exactly
+1. In the Google Apps Script editor, run the `testConnection()` function
+2. Check the logs to see if it connects successfully
+3. Test with a simple form submission
 
-4. **CORS Errors**
-   - Apps Script handles CORS automatically
-   - If you see CORS errors, check your web app URL
+## Security Notes
 
-### Debug Mode
-
-Add this to your Apps Script to see detailed logs:
-
-```javascript
-// Add this at the top of your Apps Script
-function log(message) {
-  console.log(new Date().toISOString() + ": " + message);
-}
-```
-
-Then check the Apps Script logs:
-
-1. Go to your Apps Script project
-2. Click **"Executions"** in the left sidebar
-3. Click on any execution to see logs
-
-## Security Considerations
-
-1. **Web App Access**
-
-   - "Anyone" means anyone with the URL can access your script
-   - For production, consider "Anyone with Google account"
-
-2. **Sheet Permissions**
-
-   - The script runs with your account permissions
-   - Make sure your Google account has access to the sheet
-
-3. **Rate Limiting**
-   - Google Apps Script has daily quotas
-   - Monitor usage in the Apps Script dashboard
-
-## Benefits of This Approach
-
-✅ **No API keys needed**  
-✅ **No OAuth2 complexity**  
-✅ **Direct read/write access**  
-✅ **Automatic error handling**  
-✅ **Works from any domain**  
-✅ **Built-in Google authentication**  
-✅ **Easy to debug and maintain**
+- The web app URL will be public, so anyone can potentially access it
+- Consider implementing authentication if needed
+- The script only allows specific actions (addStudentSubmission, write, getStudents, getVerifications)
+- All data is validated before being written to the spreadsheet
 
 ## Next Steps
 
-1. **Test thoroughly** with your actual data
-2. **Monitor usage** in Apps Script dashboard
-3. **Add error handling** for production use
-4. **Consider rate limiting** for high traffic
+Once everything is set up:
 
----
-
-Your student verification system is now ready to read and write data directly to Google Sheets!
+1. Test the student form submission
+2. Test the recruiter verification process
+3. Monitor the Google Sheet to ensure data is being added correctly
+4. Consider adding data validation rules to the Google Sheet
+5. Set up notifications for new submissions if needed

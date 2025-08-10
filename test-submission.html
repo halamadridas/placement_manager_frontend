@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Student Submission</title>
+</head>
+<body>
+    <h1>Test Student Submission API</h1>
+    <button onclick="testSubmission()">Test Submission</button>
+    <div id="result"></div>
+
+    <script>
+        async function testSubmission() {
+            // Convert the form data to array format for Google Sheets
+            const rowData = [
+                "TEST123",                    // registrationNumber
+                "Test Student",               // name
+                "Test Company",               // company (since isPlaced is yes)
+                "Computer Science",           // course
+                "1234567890",                 // phone
+                "test@example.com",           // email
+                "2024-01-15",                 // placementDate
+                "4.5 LPA",                    // package
+                "Great placement process!",   // feedback
+                new Date().toISOString(),     // submissionDate
+                'false',                      // Is Verified
+                'Pending'                     // Status
+            ];
+
+            const payload = {
+                action: "addStudentSubmission",
+                studentData: rowData
+            };
+
+            try {
+                console.log("Sending test data:", payload);
+                
+                const response = await fetch("http://localhost:4000/api/student-submission", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json();
+                console.log("Response:", result);
+                
+                document.getElementById("result").innerHTML = `
+                    <h3>Test Result:</h3>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+
+                if (result.success) {
+                    alert("✅ Test submission successful!");
+                } else {
+                    alert("❌ Test submission failed: " + result.error);
+                }
+            } catch (error) {
+                console.error("Test error:", error);
+                document.getElementById("result").innerHTML = `
+                    <h3>Test Error:</h3>
+                    <pre>${error.toString()}</pre>
+                `;
+                alert("❌ Test failed: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html> 

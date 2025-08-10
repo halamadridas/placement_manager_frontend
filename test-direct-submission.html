@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Submission Test</title>
+</head>
+<body>
+    <h1>Direct Submission Test (Bypass Validation)</h1>
+    <button onclick="testDirectSubmission()">Test Direct Submission</button>
+    <div id="result"></div>
+
+    <script>
+        async function testDirectSubmission() {
+            // Test data that matches your payload
+            const testData = {
+                registrationNumber: "PGD202349882",
+                name: "Neeraj Chauhan",
+                isPlaced: "yes",
+                company: "Shoolini University",
+                course: "M. Tech CSE",
+                phone: "+918219072744",
+                email: "chauhanneeraj866@gmail.com",
+                placementDate: "2024-11-28",
+                package: "5.5",
+                feedback: "",
+                submissionDate: new Date().toISOString()
+            };
+
+            try {
+                console.log("🔍 Testing direct submission with data:", testData);
+                
+                // Convert to array format (same as submitStudentData function)
+                const rowData = [
+                    testData.registrationNumber,
+                    testData.name,
+                    testData.isPlaced === 'yes' ? testData.company : '',
+                    testData.course,
+                    testData.phone,
+                    testData.email,
+                    testData.placementDate || '',
+                    testData.package || '',
+                    testData.feedback || '',
+                    new Date().toISOString(),
+                    'false',
+                    'Pending'
+                ];
+
+                const payload = {
+                    action: "addStudentSubmission",
+                    studentData: rowData
+                };
+
+                console.log("🔍 Sending payload:", payload);
+                
+                const response = await fetch("http://localhost:4000/api/student-submission", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const result = await response.json();
+                console.log("🔍 Response:", result);
+                
+                document.getElementById("result").innerHTML = `
+                    <h3>Test Result:</h3>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+
+                if (result.success) {
+                    alert("✅ Direct submission successful!");
+                } else {
+                    alert("❌ Direct submission failed: " + result.error);
+                }
+            } catch (error) {
+                console.error("❌ Direct test error:", error);
+                document.getElementById("result").innerHTML = `
+                    <h3>Test Error:</h3>
+                    <pre>${error.toString()}</pre>
+                `;
+                alert("❌ Direct test failed: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html> 
