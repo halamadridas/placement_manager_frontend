@@ -491,7 +491,7 @@ export async function insertRowsViaScript(
 ): Promise<boolean> {
   try {
     // Use your backend proxy endpoint instead of the Apps Script URL
-    const response = await fetch("http://localhost:4000/api/insert-rows", {
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/insert-rows`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
