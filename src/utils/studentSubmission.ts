@@ -61,7 +61,7 @@ export async function submitStudentData(
       studentData: rowData
     };
 
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/student-submission`, {
+    const response = await fetch(`${process.env.VITE_APP_API_URL}/api/student-submission`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
