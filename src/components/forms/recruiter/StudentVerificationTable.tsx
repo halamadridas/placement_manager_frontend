@@ -114,7 +114,7 @@ interface StudentVerificationTableProps {
 }
 
 // Constants
-const statusOptions = ["Joined", "Not Joined", "Left Company", "Blacklisted"];
+const statusOptions = ["Joined", "Not Joined", "Left Company"];
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
 
 const statusIcons = {
