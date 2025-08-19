@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { submitStudentData, validateStudentData, type StudentSubmissionData } from "@/utils/studentSubmission";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { checkStudentExists, submitStudentData, validateStudentData, type StudentSubmissionData } from "@/utils/studentSubmission";
 
 interface StudentFormData {
   registrationNumber: string;
@@ -47,31 +47,50 @@ export const StudentForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
+  
     try {
       // Debug: Log the form data
       console.log("🔍 Form data being submitted:", formData);
-
+  
       // Validate form data
-      const validation = validateStudentData(formData);
+      const validation = validateStudentData(formData );
       if (!validation.isValid) {
         alert(`Please fix the following errors:\n${validation.errors.join('\n')}`);
+        setIsSubmitting(false);
         return;
       }
-
+  
+      // Check if student already exists (optional - prevent duplicates)
+      if (formData.registrationNumber) {
+        console.log("🔍 Checking if student exists...");
+        const existsResult = await checkStudentExists(formData.registrationNumber);
+        
+        if (existsResult.success && existsResult.exists) {
+          const confirmUpdate = window.confirm(
+            `A student with registration number ${formData.registrationNumber} already exists. Do you want to update their information?`
+          );
+          
+          if (!confirmUpdate) {
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+  
       // Prepare data for submission
       const submissionData: StudentSubmissionData = {
         ...formData,
         submissionDate: new Date().toISOString(),
       };
-
+  
       console.log("🔍 Submission data:", submissionData);
-
-      // Submit to backend API
+  
+      // Submit to Google Apps Script
       const result = await submitStudentData(submissionData);
-
+  
       if (result.success) {
         alert("✅ Student data submitted successfully!");
+        console.log("✅ Submission successful:", result);
         
         // Reset form
         setFormData({
@@ -86,18 +105,86 @@ export const StudentForm: React.FC = () => {
           package: "",
           feedback: "",
         });
+        
+        // Optional: Redirect or update UI state
+        // window.location.reload(); // Uncomment if you want to reload the page
+        
+
+        console.log(`formData`,formData)
+
       } else {
+        console.error("❌ Submission failed:", result);
         alert(`❌ Failed to submit data: ${result.error}`);
       }
-
+  
     } catch (error) {
-      console.error("Error submitting student data:", error);
+      console.error("❌ Error submitting student data:", error);
       alert("❌ Failed to submit data. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
+  // Helper function to validate student data
+  function validateStudentData(data: StudentSubmissionData): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    const errors: string[] = [];
+  
+    // Required fields validation
+    if (!data.registrationNumber?.trim()) {
+      errors.push("Registration Number is required");
+    }
+  
+    if (!data.name?.trim()) {
+      errors.push("Name is required");
+    }
+  
+    if (!data.isPlaced) {
+      errors.push("Please specify if the student is placed or not");
+    }
+  
+    if (!data.course?.trim()) {
+      errors.push("Course is required");
+    }
+  
+    if (!data.phone?.trim()) {
+      errors.push("Phone number is required");
+    }
+  
+    if (!data.email?.trim()) {
+      errors.push("Email is required");
+    }
+  
+    // Email format validation
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      errors.push("Please enter a valid email address");
+    }
+  
+    // Phone format validation
+    if (data.phone && !/^\d{10}$/.test(data.phone.replace(/\D/g, ''))) {
+      errors.push("Please enter a valid 10-digit phone number");
+    }
+  
+    // Placement-specific validation
+    if (data.isPlaced === 'yes') {
+      if (!data.company?.trim()) {
+        errors.push("Company name is required for placed students");
+      }
+      if (!data.placementDate?.trim()) {
+        errors.push("Placement date is required for placed students");
+      }
+      if (!data.package?.trim()) {
+        errors.push("Package details are required for placed students");
+      }
+    }
+  
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
   return (
     <form onSubmit={handleSubmit} className="w-4/5 mx-auto p-4 space-y-6">
       <div className="text-center mb-8">
